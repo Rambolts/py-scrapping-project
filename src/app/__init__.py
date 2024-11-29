@@ -27,7 +27,7 @@ def get_logger_filename(bot_id: str, root: str = './__logs__', log_filename: str
         datepart = datetime.now().strftime(date_fmt) + '_'
 
     extension = 'log'
-    return os.path.join(root, str(datetime.now().year), f'{datepart}{filename}.{extension}')
+    return os.path.join(root, f'{datepart}{filename}.{extension}')
 
 def update_dotmap_values(left: Any, right: Any) -> DotMap:
     if isinstance(right, DotMap):

@@ -63,7 +63,6 @@ class SQLiteTable():
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        print('finishing connection')
         self._conn.close()
         if exc_type is not None:
             print(f'exc_type : {exc_type}')
