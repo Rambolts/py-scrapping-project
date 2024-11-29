@@ -17,8 +17,25 @@ class SQLiteTable():
         try:
             self._conn.executemany(query, values)
             self.commit()
-        except:
-            self.rollback()
+        except Exception as e:
+            self._conn.rollback()
+            raise e
+            
+    def execute(self, query:str, params: tuple = None):
+        """
+        Executa query SQL.
+
+        :param query: Comando SQL.
+        :param params: Parâmetros para a query (opcional).
+        :return: Cursor com os resultados da query.
+        """
+        try:
+            cursor = self._conn.execute(query, params or ())
+            self._conn.commit()
+            return cursor
+        except Exception as e:
+            self._conn.rollback()
+            raise e
             
     def read(self, query: str, **pd_kwargs) -> pd.DataFrame:
         """

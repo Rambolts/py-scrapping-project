@@ -1,4 +1,4 @@
-import sys, os; sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + "/."))
+import os; os.chdir(source_dir := os.path.dirname(os.path.abspath(__file__)))
 
 from plugins.selenium.selenium import Selenium
 from selenium.webdriver.common.by import By
@@ -15,10 +15,12 @@ def main(populate, read_and_process):
     app.logger.info("Starting Automation")
     start_time = time()
     
-    assert any[populate, read_and_process], "Nothing to do."
+    assert any([populate, read_and_process]), "Nothing to do."
     
     if populate:
-        # Getting data
+        app.logger.info("")
+        app.logger.info("POPULATING/UPDATING TABLE")
+        
         app.logger.info("Getting data from web")
         df_web  = get_web_dataframe()
         
@@ -28,16 +30,18 @@ def main(populate, read_and_process):
         app.logger.info("Merging both")
         df_inner = pd.merge(df_web, df_file, on="capital", how="inner") 
         
-        # Uploading data
         app.logger.info("Uploading dataframe")
         db_path = os.path.join(".", "data_source", "estados_brasil.db")
+        
         with SQLiteEstados(db_path) as table_estados:
-            table_estados.db_upsert(df_inner)
+            table_estados.upsert_df(df_inner)
             
     if read_and_process:
-        app.logger.info("Processing Items")
+        app.logger.info("")
+        app.logger.info("PROCESSING ITEMS")
         
-        df = table_estados.read_all()
+        with SQLiteEstados(db_path) as table_estados:
+            df = table_estados.read_all()
         
         app.logger.info("--------------------------------------------")
         app.logger.info("Generating top three populated regions")
@@ -53,32 +57,40 @@ def main(populate, read_and_process):
     
     
     app.logger.info("--------------------------------------------")
-    
     app.logger.info("")
     app.logger.info("RESUME")
     app.logger.info(f"\tExecution time: {round(time()-start_time, 1)}s")
-    app.logger.info("------------")
         
 def generate_most_populated_state(df):
     try:
         most_populated_state = df.nlargest(2, "populacao")[["estado", "capital", "populacao"]]
-        most_populated_state.to_excel("estados_mais_populosos.xls", index=False)
+        most_populated_state.to_excel("estados_mais_populosos.xls", index=False, engine="xlwt")
+        app.logger.info("Success")
     except Exception as err:
-        app.logger.error(err)  
+        app.logger.error(err)
+    finally:
+        app.logger.info("")
     
 def generate_regions_n_captals(df):
     try:
         regions_n_capitals = df.groupby("regiao").size().reset_index(name="n_capitais")
         regions_n_capitals.to_excel(os.path.join("..", "output", "regioes_n_capitais.xls"), index=False, engine="xlwt")
+        app.logger.info("Success")
     except Exception as err:
         app.logger.error(err)  
+    finally:
+        app.logger.info("")
     
 def generate_top_3_populated_regions(df):
     try:
         top3_regioes = df.groupby("regiao")["populacao"].sum().nlargest(3).reset_index()
         top3_regioes.to_csv(os.path.join("..", "output", "top3_regioes_populosas.csv"), index=False)
+        app.logger.info("Success")
+        app.logger.info("")
     except Exception as err:
         app.logger.error(err)
+    finally:
+        app.logger.info("")
 
 def get_web_dataframe():
     try:
@@ -99,7 +111,7 @@ def get_web_dataframe():
         # Treating DataFrame
         df = pd.DataFrame(values, columns=columns)[["Estado", "Capital", "Região"]]
         df.columns = ["estado", "capital", "regiao"]
-        df = df.applymap(lambda x: x.title() if isinstance(x, str) else x)
+        df = df.map(lambda x: x.title() if isinstance(x, str) else x)
         
         return df
     
@@ -110,7 +122,7 @@ def get_web_dataframe():
 
 def get_file_dataframe():
     try:
-        file_path = os.path.join(".", "data_source", "PopulaçãoxCapital.xlsx")
+        file_path = os.path.join("..", "input", "PopulaçãoxCapital.xlsx")
         
         df = pd.read_excel(file_path)
         df.drop_duplicates(inplace=True)

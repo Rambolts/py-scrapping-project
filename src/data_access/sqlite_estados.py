@@ -37,7 +37,7 @@ class SQLiteEstados(SQLiteTable):
         """
         
         existing_query = f"SELECT estado FROM {self.table_name}"
-        existing_records = set(estado for estado in self.execute(existing_query).fetchall())
+        existing_records = set(estado[0] for estado in self.execute(existing_query).fetchall())
         values = [
             (obj.estado, obj.capital, obj.regiao, obj.populacao)
             for obj in objects
