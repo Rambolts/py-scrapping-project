@@ -4,18 +4,22 @@ from plugins.selenium.selenium import Selenium
 from selenium.webdriver.common.by import By
 from data_access.sqlite_estados import SQLiteEstados
 from time import time
+from typing import Callable
 
+import pyexcel
 import argparse
 import traceback
 import app
 import pandas as pd
 import string
 
-def main(populate, read_and_process):
+def main(populate: bool, read_and_process: bool):
     app.logger.info("Starting Automation")
     start_time = time()
     
-    assert any([populate, read_and_process]), "Nothing to do."
+    if not any([populate, read_and_process]):
+        app.logger.info("Nothing to do.")
+        return
     
     if populate:
         app.logger.info("")
@@ -56,39 +60,64 @@ def main(populate, read_and_process):
         generate_most_populated_state(df)
     
     
-    app.logger.info("--------------------------------------------")
-    app.logger.info("")
+    app.logger.info("===================================================")
     app.logger.info("RESUME")
     app.logger.info(f"\tExecution time: {round(time()-start_time, 1)}s")
+    app.logger.info("===================================================")
         
-def generate_most_populated_state(df):
+def generate_report(df: pd.DataFrame, transform: Callable[[pd.DataFrame], pd.DataFrame], output_path: str):
+    """
+    Generic function to generate a report.
+
+    :param df: Input DataFrame.
+    :param transform: A function that transforms the DataFrame for the report.
+    :param output_path: The file path where the report will be saved.
+    """
+    transformed_df = transform(df)
+    data_dict = transformed_df.to_dict(orient="records")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    pyexcel.save_as(records=data_dict, dest_file_name=output_path)
+    
+def generate_most_populated_state(df:pd.DataFrame):
     try:
-        most_populated_state = df.nlargest(2, "populacao")[["estado", "capital", "populacao"]]
-        most_populated_state.to_excel("estados_mais_populosos.xls", index=False, engine="xlwt")
-        app.logger.info("Success")
-    except Exception as err:
-        app.logger.error(err)
+        df = df.nlargest(2, "populacao")[["estado", "capital", "populacao"]]
+        file_path = os.path.join("..", "output", "estados_mais_populosos.xls")
+        
+        data_dict = df.to_dict(orient="records")
+        pyexcel.save_as(records=data_dict, dest_file_name=file_path)
+        
+        app.logger.debug("\tSuccess")
+    except Exception as e:
+        app.logger.error(f"\tError: {e}")
     finally:
         app.logger.info("")
     
-def generate_regions_n_captals(df):
+def generate_regions_n_captals(df:pd.DataFrame):
     try:
-        regions_n_capitals = df.groupby("regiao").size().reset_index(name="n_capitais")
-        regions_n_capitals.to_excel(os.path.join("..", "output", "regioes_n_capitais.xls"), index=False, engine="xlwt")
-        app.logger.info("Success")
-    except Exception as err:
-        app.logger.error(err)  
+        df = df.groupby("regiao").size().reset_index(name="n_capitais")
+        file_path = os.path.join("..", "output", "regioes_n_capitais.xls")
+
+        data_dict = df.to_dict(orient="records")
+        pyexcel.save_as(records=data_dict, dest_file_name=file_path)
+        
+        app.logger.info("\tSuccess")
+    except Exception as e:
+        app.logger.error(f"\tError: {e}")
     finally:
         app.logger.info("")
     
-def generate_top_3_populated_regions(df):
+def generate_top_3_populated_regions(df:pd.DataFrame):
     try:
-        top3_regioes = df.groupby("regiao")["populacao"].sum().nlargest(3).reset_index()
-        top3_regioes.to_csv(os.path.join("..", "output", "top3_regioes_populosas.csv"), index=False)
-        app.logger.info("Success")
-        app.logger.info("")
-    except Exception as err:
-        app.logger.error(err)
+        df = df.groupby("regiao")["populacao"].sum().nlargest(3).reset_index()
+        file_path = os.path.join("..", "output", "top3_regioes_populosas.csv")
+        #top3_regioes.to_csv(os.path.join("..", "output", "top3_regioes_populosas.csv"), index=False)
+        
+        data_dict = df.to_dict(orient="records")
+        pyexcel.save_as(records=data_dict, dest_file_name=file_path)
+        
+        app.logger.info("\tSuccess")
+    except Exception as e:
+        app.logger.error(f"\tError: {e}")
     finally:
         app.logger.info("")
 
@@ -103,10 +132,10 @@ def get_web_dataframe():
             driver = webdriver.get_driver()
             
             # Getting table element
-            table = driver.find_element(By.XPATH, "//table[@bgcolor='#ffffff']")
+            table   = driver.find_element(By.XPATH, "//table[@bgcolor='#ffffff']")
             columns = [header.text for header in table.find_elements(By.XPATH, "//th/span")]
-            rows   = [row.find_elements(By.XPATH, "./td/span") for row in table.find_elements(By.XPATH, "//tbody/tr")]
-            values = [[cell.text for cell in row] for row in rows if row]
+            rows    = [row.find_elements(By.XPATH, "./td/span") for row in table.find_elements(By.XPATH, "//tbody/tr")]
+            values  = [[cell.text for cell in row] for row in rows if row]
         
         # Treating DataFrame
         df = pd.DataFrame(values, columns=columns)[["Estado", "Capital", "Região"]]
@@ -115,10 +144,10 @@ def get_web_dataframe():
         
         return df
     
-    except Exception as err:
-        app.logger.error(f"\n{type(err).__name__} at line {err.__traceback__.tb_lineno} of {__file__}\n")
+    except Exception as e:
+        app.logger.error(f"\n{type(e).__name__} at line {e.__traceback__.tb_lineno} of {__file__}\n")
         traceback.print_exc()
-        raise err
+        raise e
 
 def get_file_dataframe():
     try:
@@ -132,10 +161,10 @@ def get_file_dataframe():
         
         return df
     
-    except Exception as err:
-        app.logger.error(f"\n{type(err).__name__} at line {err.__traceback__.tb_lineno} of {__file__}\n")
+    except Exception as e:
+        app.logger.error(f"\n{type(e).__name__} at line {e.__traceback__.tb_lineno} of {__file__}\n")
         traceback.print_exc()
-        raise err
+        raise e
 
 if __name__=="__main__":
     
