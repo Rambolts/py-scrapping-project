@@ -1,0 +1,17 @@
+# Ignorar caches do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar arquivos de banco de dados
+*.db
+
+# Ignorar arquivos do macOS
+.DS_Store
+
+# Ignorar LOGs
+__logs__/
+
+# Ignorar venvs
+*_venv/
