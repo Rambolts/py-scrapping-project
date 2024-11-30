@@ -85,10 +85,26 @@ The following reports are generated in the `output` directory:
 ## **Code Structure**
 
 - `main.py`: Entry point for the script.
-- `data_access/sqlite_estados.py`: Handles database interactions.
+- `data_access/sqlite_estados.py`: Handles state database interactions specifically.
 - `functions/extraction.py`: Contains functions for data extraction.
 - `functions/file_saving.py`: Manages report generation and file saving.
 - `app`: Configuration and logger management.
+
+### **Plugins**
+
+- `plugins/selenium/selenium.py`: A custom Selenium wrapper class with advanced configurations for browser automation. Features include:
+  - Integration with CapSolver for CAPTCHA solving.
+  - Configurable browser options for better automation control.
+  - Utilities for handling alerts, waits, and actions within Selenium.
+  
+- `plugins/sqlite/table.py`: A reusable SQLite table abstraction with the following features:
+  - Bulk execution of SQL commands (`executemany`).
+  - Query execution and result retrieval as pandas DataFrames.
+  - Transaction handling with `commit` and `rollback`.
+  - Context manager support (`__enter__` and `__exit__`).
+
+### **Additional Notes**
+The plugins directory contains reusable components that enhance functionality and modularity, allowing for easy integration and customization for various tasks.
 
 ---
 
