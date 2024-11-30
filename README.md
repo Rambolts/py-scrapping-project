@@ -27,8 +27,8 @@ This repository contains an automation script developed in Python 3.12.7 that in
 ### **Setup**
 1. Clone this repository:
    ```bash
-   git clone https://github.com/username/repo-name.git
-   cd repo-name
+   git clone https://github.com/Rambolts/py-scrapping-project.git
+   cd py-scrapping-project
    ```
 
 2. Install dependencies:
